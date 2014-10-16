@@ -101,7 +101,6 @@ public class Database {
             default:
                 break;
         }
-        log.info(sql);
         ResultSet rs = st.executeQuery(sql);
         List<Row> users = new ArrayList<Row>();
         while (rs.next()) {
@@ -110,6 +109,9 @@ public class Database {
         for (Row x : users) {
             Chat.sendMsg(sender, String.format("[%s%s%s] K:%d D:%d", Color.GOLD, x.name, Color.WHITE, x.kills, x.deaths));
         }
+        if (users.size() == 0) {
+            Chat.sendMsg(sender, String.format("No users on killboard."));
+        }
     }
 
     public void statsLookup(ICommandSender sender, String username) throws SQLException {
@@ -117,14 +119,18 @@ public class Database {
         PreparedStatement prep = conn.prepareStatement(sql);
         prep.setString(1, username);
         ResultSet rs = prep.executeQuery();
-        int kills = rs.getInt("kills");
-        int deaths = rs.getInt("deaths");
-        Chat.sendMsg(sender, String.format("[%s%s%s] K:%d D:%d", Color.GOLD, username, Color.WHITE, kills, deaths));
+        if (rs.next()) {
+            int kills = rs.getInt("kills");
+            int deaths = rs.getInt("deaths");
+            Chat.sendMsg(sender, String.format("[%s%s%s] K:%d D:%d", Color.GOLD, username, Color.WHITE, kills, deaths));
+        } else {
+            Chat.sendMsg(sender, String.format("No user by the name of '%s' found.", username));
+        }
     }
 
     public void addKB(EntityPlayer player, Boolean killer) {
         String uuid = player.getUniqueID().toString();
-        PreparedStatement prep = null;
+        PreparedStatement prep;
         try {
             String sql;
             if (killer) {
@@ -157,8 +163,7 @@ public class Database {
         EntityPlayer player = event.player;
         String uuid = player.getUniqueID().toString();
         String name = player.getDisplayName();
-
-        PreparedStatement prep = null;
+        PreparedStatement prep;
         String sql = "INSERT OR IGNORE INTO killboard (name, uuid) VALUES (?, ?)";
         prep = conn.prepareStatement(sql);
         prep.setString(1, name);
